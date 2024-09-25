@@ -61,7 +61,7 @@ header p {
     display: grid;
     grid-template-columns: 1fr;
     gap: 15px;
-    margin-left: -15px; /* Сдвиг влево на 20px */
+    margin-left: 0px; /* Сдвиг влево на 20px */
     transform: translateY(5px);
 }
 
@@ -94,9 +94,32 @@ header p {
     margin-top: 4px;
 }
 
+h1 {
+    font-size: 2rem; /* Размер шрифта будет относительным к размеру корневого элемента */
+}
 
-@media (min-width: 600px) {
-    .features {
-        grid-template-columns: 50fr 50fr;
+p {
+    font-size: 1rem;
+}
+
+
+/* Адаптация для мобильных устройств */
+@media (max-width: 600px) {
+    .container {
+        width: 100%; /* Используем всю ширину экрана на мобильных устройствах */
+        padding: 20px; /* Уменьшение внутреннего отступа */
+    }
+
+    .feature h2 {
+        font-size: 1.5rem; /* Уменьшение размера шрифта заголовков */
+    }
+
+    .feature p {
+        font-size: 1rem; /* Уменьшение размера шрифта параграфа */
+    }
+
+    .feature img {
+        width: 50px; /* Уменьшение размера изображений */
+        height: 50px;
     }
 }
