@@ -52,7 +52,7 @@
 ## 👤 Автор
 
 📛 Jason Vurhyz  
-🔗 [Telegram](t.me/JasonVurhyz)
+🔗 ([t.me/JasonVurhyz](https://t.me/JasonVurhyz))
 
 ---
 
