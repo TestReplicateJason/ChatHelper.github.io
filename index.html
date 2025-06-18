@@ -1,14 +1,1663 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-  <title>Топ имён</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Message Constructor</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #17212b;
+            color: #ffffff;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .chat-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0e1621;
+            min-height: 100vh;
+        }
+
+        .bubbles-group {
+            display: flex;
+            margin-bottom: 12px;
+            position: relative;
+            align-items: flex-end;
+        }
+
+        .bubbles-group.grouped {
+            margin-bottom: 2px;
+        }
+
+        .bubbles-group.grouped:last-child {
+            margin-bottom: 12px;
+        }
+
+        .bubbles-group-avatar-container {
+            width: 40px;
+            height: 40px;
+            margin-right: 8px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .bubbles-group-avatar-container.hidden {
+            visibility: hidden;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            font-size: 16px;
+            color: white;
+            position: relative;
+        }
+
+        .avatar-gradient {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+        }
+
+        .avatar.violet {
+            background: linear-gradient(135deg, #9c88ff, #8b5cf6);
+        }
+
+        .avatar.orange {
+            background: linear-gradient(135deg, #ff9f43, #ff6b35);
+        }
+
+        .avatar.green {
+            background: linear-gradient(135deg, #26de81, #20bf6b);
+        }
+
+        .avatar.blue {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+        }
+
+        .avatar.red {
+            background: linear-gradient(135deg, #fa709a, #fee140);
+        }
+
+        .avatar-photo {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .bubble {
+            background: #182533;
+            border-radius: 12px;
+            padding: 8px 12px;
+            position: relative;
+            max-width: 400px;
+            margin-bottom: 2px;
+            border: 1px solid #233041;
+            min-width: fit-content;
+            width: auto;
+        }
+
+        .bubble.is-in {
+            margin-left: 0;
+        }
+
+        .bubble.is-out {
+            background: #8774e1;
+            margin-left: auto;
+            margin-right: 0;
+        }
+
+        .bubble.is-group-first,
+        .bubble.is-group-middle,
+        .bubble.is-group-last {
+            border-radius: 5;
+        }
+
+        .bubble.is-group-first {
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+        }
+
+        .bubble.is-group-middle {
+            border-top-left-radius: 6px;
+            border-bottom-left-radius: 6px;
+        }
+
+        .bubble.is-group-last {
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+        }
+
+        .bubble.is-group-first.is-group-last {
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+        }
+
+        .bubble.service.is-date {
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            border-radius: 12px;
+            margin: 16px auto;
+            padding: 6px 12px;
+            max-width: 200px;
+            text-align: center;
+        }
+
+        .service-msg {
+            font-size: 13px;
+            color: #8d969c;
+            font-weight: 400;
+        }
+
+        .bubble-content-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .bubble-content {
+            position: relative;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            min-width: fit-content;
+        }
+
+        .bubble-content > .message {
+            min-width: 100%;
+        }
+
+        .colored-name {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .colored-name.blue, .reply-title.blue { color: #5dadde; }
+        .colored-name.green, .reply-title.green { color: #79ca7b; }
+        .colored-name.orange, .reply-title.orange { color: #e39552; }
+        .colored-name.red, .reply-title.red { color: #e35a62; }
+        .colored-name.violet, .reply-title.violet { color: #a480dd; }
+        .colored-name.cyan, .reply-title.cyan { color: #5ac1d0; }
+        .colored-name.pink, .reply-title.pink { color: #e75089; }
+
+        .reply.reply-blue {
+            background: rgba(93, 173, 222, 0.12);
+            border-left-color: #5dadde;
+        }
+        .reply.reply-green {
+            background: rgba(121, 202, 123, 0.12);
+            border-left-color: #79ca7b;
+        }
+        .reply.reply-orange {
+            background: rgba(227, 149, 82, 0.12);
+            border-left-color: #e39552;
+        }
+        .reply.reply-red {
+            background: rgba(227, 90, 98, 0.12);
+            border-left-color: #e35a62;
+        }
+        .reply.reply-violet {
+            background: rgba(164, 128, 221, 0.12);
+            border-left-color: #a480dd;
+        }
+        .reply.reply-cyan {
+            background: rgba(90, 193, 208, 0.12);
+            border-left-color: #5ac1d0;
+        }
+        .reply.reply-pink {
+            background: rgba(231, 80, 137, 0.12);
+            border-left-color: #e75089;
+        }
+
+
+        .peer-title {
+            color: inherit;
+        }
+
+        .bubble-name-rank {
+            margin-left: 6px;
+            font-size: 12px;
+            color: #7b8994;
+            font-weight: normal;
+        }
+
+        .message {
+            font-size: 14px;
+            line-height: 1.4;
+            color: #ffffff;
+            word-wrap: break-word;
+            width: 100%;
+        }
+
+        .message strong {
+            font-weight: bold;
+        }
+
+        .message em {
+            font-style: italic;
+        }
+
+        .message u {
+            text-decoration: underline;
+        }
+
+        .message del {
+            text-decoration: line-through;
+        }
+
+        .spoiler {
+            background: #7b8994;
+            color: #7b8994;
+            border-radius: 2px;
+            padding: 0 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .spoiler:hover .spoiler-text,
+        .spoiler.revealed .spoiler-text {
+            color: white;
+        }
+
+        .spoiler-text {
+            color: transparent;
+        }
+
+        .anchor-url {
+            color: #8774e1;
+            text-decoration: none;
+        }
+
+        .anchor-url:hover {
+            text-decoration: underline;
+        }
+
+        .quote {
+            border-left: 2px solid #8774e1;
+            padding-left: 10px;
+            margin: 4px 0;
+            background: rgba(135, 116, 225, 0.1);
+            padding: 6px 10px;
+            border-radius: 4px;
+        }
+
+        .time {
+            font-size: 12px;
+            color: #7b8994;
+            margin-left: 6px;
+            float: right;
+            margin-top: 2px;
+        }
+
+        .emoji {
+            width: 18px;
+            height: 18px;
+            vertical-align: -3px;
+            margin-right: 2px;
+        }
+
+        .follow {
+            color: #8774e1;
+            text-decoration: none;
+        }
+
+        .follow:hover {
+            text-decoration: underline;
+        }
+
+        .bubble-tail {
+            position: absolute;
+            left: -8px;
+            bottom: 0;
+            fill: #182533;
+            color: #182533;
+        }
+
+        .bubble.is-out .bubble-tail {
+            display: none;
+        }
+
+        .reply {
+            width: 100%;
+            background: rgba(135, 116, 225, 0.1);
+            border-left: 2px solid #8774e1;
+            padding: 6px 8px;
+            margin-bottom: 6px;
+            border-radius: 4px;
+        }
+
+        .reply-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: #8774e1;
+            margin-bottom: 2px;
+        }
+
+        .reply-subtitle {
+            font-size: 12px;
+            color: #7b8994;
+        }
+
+        .message-buttons {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            width: 100%;
+        }
+
+        .message-button {
+            background: #4a5568;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: background 0.2s;
+            border: 1px solid #5a6570;
+            width: 100%;
+            text-align: center;
+        }
+
+        .message-button:hover {
+            background: #5a6570;
+        }
+
+        .constructor-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #182533;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #233041;
+            width: 350px;
+            max-height: 90vh;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .constructor-panel h3 {
+            margin-bottom: 15px;
+            color: #8774e1;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #7b8994;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            background: #0f1419;
+            border: 1px solid #233041;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            background: #8774e1;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            background: #9688e8;
+        }
+
+        .btn-secondary {
+            background: #233041;
+        }
+
+        .btn-secondary:hover {
+            background: #2d3e52;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            width: auto;
+            display: inline-block;
+            margin: 2px;
+        }
+
+        .formatting-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .format-btn {
+            background: #233041;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .format-btn:hover {
+            background: #2d3e52;
+        }
+
+        .format-btn.active {
+            background: #8774e1;
+        }
+
+        .buttons-list {
+            border: 1px solid #233041;
+            border-radius: 6px;
+            padding: 8px;
+            background: #0f1419;
+            margin-bottom: 10px;
+        }
+
+        .button-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            padding: 6px;
+            background: #182533;
+            border-radius: 4px;
+        }
+
+        .button-item input {
+            flex: 1;
+            margin: 0;
+        }
+
+        .btn-remove {
+            background: #e74c3c;
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+
+        .btn-remove:hover {
+            background: #c0392b;
+        }
+
+        .replies-list {
+            border: 1px solid #233041;
+            border-radius: 6px;
+            padding: 8px;
+            background: #0f1419;
+            margin-bottom: 10px;
+        }
+
+        .reply-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 8px;
+            padding: 6px;
+            background: #182533;
+            border-radius: 4px;
+        }
+
+        .reply-item-header {
+            display: flex;
+            gap: 8px;
+        }
+
+        .reply-item input,
+        .reply-item textarea {
+            margin: 0;
+        }
+
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        .spoilers-container {
+            position: relative;
+        }
+
+        .translatable-message {
+            display: inline;
+        }
+
+        .text-editor {
+            position: relative;
+        }
+
+        .date-input-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .date-input-group input {
+            flex: 1;
+        }
+
+        .avatar-upload-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .avatar-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid #233041;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 500;
+            color: white;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .avatar-preview.violet {
+            background: linear-gradient(135deg, #9c88ff, #8b5cf6);
+        }
+
+        .avatar-preview.orange {
+            background: linear-gradient(135deg, #ff9f43, #ff6b35);
+        }
+
+        .avatar-preview.green {
+            background: linear-gradient(135deg, #26de81, #20bf6b);
+        }
+
+        .avatar-preview.blue {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+        }
+
+        .avatar-preview.red {
+            background: linear-gradient(135deg, #fa709a, #fee140);
+        }
+
+        .avatar-preview.gradient {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+        }
+
+        .avatar-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-label {
+            display: block;
+            background: #233041;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 14px;
+            border: 1px solid #233041;
+        }
+
+        .file-input-label:hover {
+            background: #2d3e52;
+        }
+
+        .remove-photo-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .remove-photo-btn:hover {
+            background: #c0392b;
+        }
+
+        .bubble-width-container {
+            display: flex;
+            flex-direction: column;
+            min-width: fit-content;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .constructor-panel {
+                position: static;
+                width: 100%;
+                margin-bottom: 20px;
+            }
+            
+            .chat-container {
+                max-width: 100%;
+                padding: 10px;
+            }
+        }
+
+        .bubbles-group-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .message-with-buttons {
+            width: 100%;
+        }
+
+        .bubble.selected {
+            background: rgba(135, 116, 225, 0.3) !important;
+            border: 2px solid #8774e1 !important;
+        }
+
+        .bubble.is-out.selected {
+            background: rgba(135, 116, 225, 0.6) !important;
+        }
+
+        .export-controls {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 1px solid #233041;
+            border-radius: 6px;
+            background: #0f1419;
+        }
+
+        .export-controls h4 {
+            margin-bottom: 10px;
+            color: #8774e1;
+            font-size: 14px;
+        }
+
+        .export-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .export-row label {
+            margin: 0;
+            font-size: 12px;
+            min-width: 80px;
+        }
+
+        .export-row input[type="checkbox"] {
+            width: auto;
+            margin-right: 5px;
+        }
+
+        .export-preview {
+            display: none;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #0e1621;
+            border: 1px solid #233041;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            border: 1px solid #233041;
+            border-radius: 8px;
+            margin: 15px 0;
+            background: white;
+        }
+        
+        .preview-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        
+        .export-options {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-  <h1>Добавь имя в список</h1>
-  <input type="text" id="nameInput" placeholder="Введи имя">
-  <button onclick="submitName()">Отправить</button>
-  <ul id="nameList"></ul>
+    <div class="constructor-panel">
+        <h3>Конструктор сообщений</h3>
+        
+        <div class="form-group">
+            <label>Имя пользователя:</label>
+            <input type="text" id="username" value="Имя" oninput="updateAvatarLetter()">
+        </div>
 
-  <script type="module" src="script.js"></script>
+        <div class="form-group">
+            <label>Аватар:</label>
+            <div class="avatar-upload-section">
+                <div class="avatar-preview violet" id="avatarPreview">f</div>
+                <div class="file-input-wrapper">
+                    <input type="file" id="avatarFile" class="file-input" accept="image/*" onchange="handleAvatarUpload(event)">
+                    <label for="avatarFile" class="file-input-label">Выбрать фото</label>
+                </div>
+                <button class="remove-photo-btn" id="removePhotoBtn" onclick="removeAvatar()" style="display: none;">Удалить фото</button>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Цвет аватара (если нет фото):</label>
+            <select id="avatarColor" onchange="updateAvatarPreview()">
+                <option value="blue">Голубой (#5dadde)</option>
+                <option value="green">Зеленый (#79ca7b)</option>
+                <option value="orange">Оранжевый (#e39552)</option>
+                <option value="red">Красный (#e35a62)</option>
+                <option value="violet">Фиолетовый (#a480dd)</option>
+                <option value="cyan">Бирюзовый (#5ac1d0)</option>
+                <option value="pink">Розовый (#e75089)</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Текст сообщения:</label>
+            <div class="text-editor">
+                <div class="formatting-toolbar">
+                    <button class="format-btn" onclick="formatText('bold')" title="Жирный"><b>B</b></button>
+                    <button class="format-btn" onclick="formatText('italic')" title="Курсив"><i>I</i></button>
+                    <button class="format-btn" onclick="formatText('underline')" title="Подчеркнутый"><u>U</u></button>
+                    <button class="format-btn" onclick="formatText('strikethrough')" title="Зачеркнутый"><s>S</s></button>
+                    <button class="format-btn" onclick="formatText('spoiler')" title="Скрытое">||</button>
+                    <button class="format-btn" onclick="formatText('link')" title="Ссылка">🔗</button>
+                    <button class="format-btn" onclick="formatText('quote')" title="Цитата">❝</button>
+                </div>
+                <textarea id="messageText" placeholder="Введите текст сообщения...">Привет! Как дела?</textarea>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Дата и время:</label>
+            <div class="date-input-group">
+                <input type="date" id="messageDate" value="">
+                <input type="text" id="messageTime" value="22:55" placeholder="ЧЧ:ММ или ЧЧ:ММ:СС">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Ранг пользователя:</label>
+            <input type="text" id="userRank" placeholder="админ">
+        </div>
+        
+        <div class="form-group">
+            <label>Тип сообщения:</label>
+            <select id="messageType">
+                <option value="incoming">Входящее</option>
+                <option value="outgoing">Исходящее</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Ответы на сообщения:</label>
+            <div class="replies-list" id="repliesList"></div>
+            <button class="btn btn-secondary" onclick="addReply()">Добавить ответ</button>
+        </div>
+        
+        <div class="form-group">
+            <label>Кнопки:</label>
+            <div class="buttons-list" id="buttonsList"></div>
+            <button class="btn btn-secondary" onclick="addButton()">Добавить кнопку</button>
+        </div>
+
+        <div class="form-group">
+            <div class="export-controls">
+                <h4>Экспорт сообщений</h4>
+                <div class="export-row">
+                    <label>Ширина:</label>
+                    <input type="number" id="exportWidth" value="800" min="400" max="1920" style="width: 80px;">
+                    <span style="font-size: 11px; color: #7b8994;">px</span>
+                </div>
+                <div class="export-row">
+                    <input type="checkbox" id="exportWithDate" checked>
+                    <label for="exportWithDate">Включить даты</label>
+                </div>
+                <div class="export-options">
+                    <button class="btn" onclick="exportSelectedMessages()">Экспорт выделенных</button>
+                    <button class="btn btn-secondary" onclick="exportAllMessages()">Экспорт всех</button>
+                </div>
+            </div>
+        </div>
+
+
+        
+        <button class="btn" onclick="addMessage()">Добавить сообщение</button>
+        <button class="btn btn-secondary" onclick="clearChat()">Очистить чат</button>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+    </div>
+
+    <div class="export-preview" id="exportPreview">
+        <h3>Предпросмотр экспорта</h3>
+        <img class="preview-image" id="previewImage">
+        <div class="preview-controls">
+            <button class="btn" id="downloadBtn">Скачать изображение</button>
+            <button class="btn btn-secondary" onclick="closePreview()">Закрыть</button>
+        </div>
+    </div>
+
+    <svg style="display: none;">
+        <defs>
+            <path id="message-tail-filled" d="M0,0 L0,20 L11,20 C11,20 0,15 0,0 Z"/>
+        </defs>
+    </svg>
+
+    <script>
+        let replies = [];
+        let buttons = [];
+        let messages = [];
+        let currentAvatarPhoto = null;
+        let selectedMessages = new Set();
+        let isSelecting = false;
+        let selectionStartIndex = -1;
+        let mouseDownTimeout = null;
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const dateString = today.toISOString().split('T')[0];
+            document.getElementById('messageDate').value = dateString;
+            updateAvatarPreview();
+        });
+
+        function getFirstLetter(text) {
+            if (!text) return 'П';
+            const match = text.match(/[\p{L}\p{N}\p{Emoji}]/u);
+            return match ? match[0].toUpperCase() : text.charAt(0).toUpperCase() || 'П';
+        }
+
+        function updateAvatarLetter() {
+            const username = document.getElementById('username').value;
+            const firstLetter = getFirstLetter(username);
+            updateAvatarPreview();
+        }
+
+        function updateAvatarPreview() {
+            const username = document.getElementById('username').value;
+            const avatarColor = document.getElementById('avatarColor').value;
+            const preview = document.getElementById('avatarPreview');
+            const firstLetter = getFirstLetter(username);
+            
+            preview.className = 'avatar-preview';
+            preview.classList.add(avatarColor);
+            
+            if (currentAvatarPhoto) {
+                preview.innerHTML = `<img src="${currentAvatarPhoto}" alt="Avatar">`;
+            } else {
+                preview.textContent = firstLetter;
+            }
+        }
+
+        function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Файл слишком большой. Максимальный размер: 5MB');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentAvatarPhoto = e.target.result;
+                    updateAvatarPreview();
+                    document.getElementById('removePhotoBtn').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeAvatar() {
+            currentAvatarPhoto = null;
+            document.getElementById('avatarFile').value = '';
+            document.getElementById('removePhotoBtn').style.display = 'none';
+            updateAvatarPreview();
+        }
+
+        function formatText(type) {
+            const textarea = document.getElementById('messageText');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const selectedText = textarea.value.substring(start, end);
+            
+            if (selectedText === '') {
+                alert('Выделите текст для форматирования');
+                return;
+            }
+
+            let formattedText = '';
+            switch (type) {
+                case 'bold':
+                    formattedText = `<strong>${selectedText}</strong>`;
+                    break;
+                case 'italic':
+                    formattedText = `<em>${selectedText}</em>`;
+                    break;
+                case 'underline':
+                    formattedText = `<u>${selectedText}</u>`;
+                    break;
+                case 'strikethrough':
+                    formattedText = `<del>${selectedText}</del>`;
+                    break;
+                case 'spoiler':
+                    formattedText = `<span class="spoiler"><span class="spoiler-text">${selectedText}</span></span>`;
+                    break;
+                case 'link':
+                    const url = prompt('Введите URL:', 'https://');
+                    if (url) {
+                        formattedText = `<a class="anchor-url" href="${url}" target="_blank" rel="noopener noreferrer">${selectedText}</a>`;
+                    } else {
+                        return;
+                    }
+                    break;
+                case 'quote':
+                    formattedText = `<div><blockquote class="quote quote-like quote-like-border quote-like-icon">${selectedText}</blockquote></div>`;
+                    break;
+                default:
+                    return;
+            }
+
+            textarea.value = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+            textarea.focus();
+            textarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
+        }
+
+        function addReply() {
+            const replyId = Date.now();
+            replies.push({ id: replyId, username: '', text: '', color: 'violet' });
+            renderReplies();
+        }
+
+        function removeReply(id) {
+            replies = replies.filter(reply => reply.id !== id);
+            renderReplies();
+        }
+
+        function renderReplies() {
+            const container = document.getElementById('repliesList');
+            container.innerHTML = '';
+            
+        replies.forEach(reply => {
+            const replyItem = document.createElement('div');
+            replyItem.className = 'reply-item';
+            replyItem.innerHTML = `
+                <div class="reply-item-header">
+                    <input type="text" placeholder="Имя пользователя" value="${reply.username}" 
+                        onchange="updateReply(${reply.id}, 'username', this.value)">
+                    <select onchange="updateReply(${reply.id}, 'color', this.value)">
+                        <option value="blue" ${reply.color === 'blue' ? 'selected' : ''}>Синий</option>
+                        <option value="green" ${reply.color === 'green' ? 'selected' : ''}>Зелёный</option>
+                        <option value="orange" ${reply.color === 'orange' ? 'selected' : ''}>Оранжевый</option>
+                        <option value="red" ${reply.color === 'red' ? 'selected' : ''}>Красный</option>
+                        <option value="violet" ${reply.color === 'violet' ? 'selected' : ''}>Фиолетовый</option>
+                        <option value="cyan" ${reply.color === 'cyan' ? 'selected' : ''}>Бирюзовый</option>
+                        <option value="pink" ${reply.color === 'pink' ? 'selected' : ''}>Розовый</option>
+                    </select>
+                    <button class="btn btn-remove btn-small" onclick="removeReply(${reply.id})">×</button>
+                </div>
+                <textarea placeholder="Текст сообщения" onchange="updateReply(${reply.id}, 'text', this.value)">${reply.text}</textarea>
+            `;
+            container.appendChild(replyItem);
+        });
+
+        }
+
+        function updateReply(id, field, value) {
+            const reply = replies.find(r => r.id === id);
+            if (reply) {
+                reply[field] = value;
+            }
+        }
+
+        function addButton() {
+            const buttonId = Date.now();
+            buttons.push({ id: buttonId, text: '' });
+            renderButtons();
+        }
+
+        function removeButton(id) {
+            buttons = buttons.filter(button => button.id !== id);
+            renderButtons();
+        }
+
+        function renderButtons() {
+            const container = document.getElementById('buttonsList');
+            container.innerHTML = '';
+            
+            buttons.forEach(button => {
+                const buttonItem = document.createElement('div');
+                buttonItem.className = 'button-item';
+                buttonItem.innerHTML = `
+                    <input type="text" placeholder="Текст кнопки" value="${button.text}" 
+                           onchange="updateButton(${button.id}, this.value)">
+                    <button class="btn btn-remove btn-small" onclick="removeButton(${button.id})">×</button>
+                `;
+                container.appendChild(buttonItem);
+            });
+        }
+
+        function updateButton(id, value) {
+            const button = buttons.find(b => b.id === id);
+            if (button) {
+                button.text = value;
+            }
+        }
+
+        function parseTime(timeStr) {
+
+            const parts = timeStr.split(':');
+            if (parts.length === 2) {
+                return timeStr + ':00';
+            }
+            return timeStr;
+        }
+
+        function formatDate(date) {
+            const months = [
+                'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+                'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+            ];
+            
+            const today = new Date();
+            const messageDate = new Date(date);
+            
+            if (messageDate.toDateString() === today.toDateString()) {
+                return 'Сегодня';
+            }
+            
+            const day = messageDate.getDate();
+            const month = months[messageDate.getMonth()];
+            
+            return `${day} ${month}`;
+        }
+
+        function addMessage() {
+            const username = document.getElementById('username').value || 'Пользователь';
+            const avatarColor = document.getElementById('avatarColor').value;
+            const messageText = document.getElementById('messageText').value || 'Сообщение';
+            const messageDate = document.getElementById('messageDate').value;
+            const messageTime = parseTime(document.getElementById('messageTime').value || '22:55');
+            const userRank = document.getElementById('userRank').value;
+            const messageType = document.getElementById('messageType').value;
+
+            const messageObj = {
+                id: Date.now(),
+                username,
+                avatarColor,
+                avatarPhoto: currentAvatarPhoto,
+                messageText,
+                messageDate,
+                messageTime,
+                userRank,
+                messageType,
+                replies: replies.map(r => ({ ...r })),
+                buttons: [...buttons],
+                timestamp: new Date(`${messageDate} ${messageTime}`).getTime()
+            };
+
+            messages.push(messageObj);
+            
+            messages.sort((a, b) => a.timestamp - b.timestamp);
+            
+            renderAllMessages();
+        }
+
+        function canGroupMessages(msg1, msg2) {
+            if (!msg1 || !msg2) return false;
+
+            if (msg1.username !== msg2.username) return false;
+
+            if (msg1.messageType !== msg2.messageType) return false;
+
+            const timeDiff = Math.abs(msg2.timestamp - msg1.timestamp);
+            if (timeDiff > 5 * 60 * 1000) return false;
+
+            if (msg1.buttons && msg1.buttons.some(b => b.text)) return false;
+            
+            return true;
+        }
+
+        function renderAllMessages() {
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.innerHTML = '';
+            
+            let currentDate = null;
+
+            const messageGroups = [];
+            let currentGroup = [];
+            
+            for (let i = 0; i < messages.length; i++) {
+                const msg = messages[i];
+                const prevMsg = messages[i - 1];
+                
+                if (currentGroup.length === 0 || !canGroupMessages(prevMsg, msg) || currentGroup.length >= 10) {
+                    if (currentGroup.length > 0) {
+                        messageGroups.push([...currentGroup]);
+                    }
+                    currentGroup = [msg];
+                } else {
+                    currentGroup.push(msg);
+                }
+            }
+            
+            if (currentGroup.length > 0) {
+                messageGroups.push(currentGroup);
+            }
+
+            messageGroups.forEach(group => {
+                group.forEach((msg, index) => {
+                    if (currentDate !== msg.messageDate) {
+                        currentDate = msg.messageDate;
+                        const dateHTML = `
+                            <div class="bubble service is-date">
+                                <div class="bubble-content">
+                                    <div class="service-msg">
+                                        <span class="i18n">${formatDate(msg.messageDate)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        chatContainer.insertAdjacentHTML('beforeend', dateHTML);
+                    }
+                    
+                    const isFirst = index === 0;
+                    const isLast = index === group.length - 1;
+                    const isGrouped = group.length > 1;
+
+                    let repliesHTML = '';
+                    msg.replies.forEach(reply => {
+                        const replyColor = reply.color || msg.avatarColor;
+                        repliesHTML += `
+                            <div class="reply reply-${replyColor}">
+                                <div class="reply-title ${replyColor}">${reply.username}</div>
+                                <div class="reply-subtitle">${reply.text}</div>
+                            </div>
+                        `;
+                    });
+
+                    let buttonsHTML = '';
+                    const validButtons = msg.buttons.filter(b => b.text);
+                    if (validButtons.length > 0 && isLast) {
+                        buttonsHTML = '<div class="message-buttons">';
+                        validButtons.forEach(button => {
+                            buttonsHTML += `
+                                <button class="message-button">
+                                    <span>${button.text}</span>
+                                </button>
+                            `;
+                        });
+                        buttonsHTML += '</div>';
+                    }
+
+                    const displayTime = msg.messageTime.endsWith(':00') ? 
+                        msg.messageTime.slice(0, -3) : msg.messageTime;
+
+                    let bubbleClasses = `bubble ${msg.messageType === 'incoming' ? 'is-in' : 'is-out'} can-have-tail`;
+                    let groupClasses = 'bubbles-group';
+                    let avatarClasses = 'bubbles-group-avatar-container';
+                    
+                    if (isGrouped) {
+                        groupClasses += ' grouped';
+                        
+                        if (isFirst && isLast) {
+                            bubbleClasses += ' is-group-first is-group-last';
+                        } else if (isFirst) {
+                            bubbleClasses += ' is-group-first';
+                        } else if (isLast) {
+                            bubbleClasses += ' is-group-last';
+                        } else if (isLast || msg.replies.length > 0) {
+                            bubbleClasses += ' is-group-last';
+                        } else {
+                            bubbleClasses += ' is-group-middle';
+                        }
+
+                        if (!isLast) {
+                            avatarClasses += ' hidden';
+                        }
+                    } else {
+                        bubbleClasses += ' is-group-first is-group-last';
+                    }
+
+                    let nameHTML = '';
+                    if (msg.messageType === 'incoming' && isFirst) {
+                        nameHTML = `
+                            <div class="colored-name name floating-part next-is-message ${msg.avatarColor}">
+                                <div class="title-flex">
+                                    <span class="peer-title">${msg.username}</span>
+                                    ${msg.userRank ? `<span class="bubble-name-rank">${msg.userRank}</span>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    let avatarContent = '';
+                    if (msg.avatarPhoto) {
+                        avatarContent = `<img src="${msg.avatarPhoto}" class="avatar-photo" alt="${msg.username}">`;
+                    } else {
+                        avatarContent = getFirstLetter(msg.username);
+                    }
+
+                    const messageHTML = `
+                        <div class="${groupClasses}" data-message-id="${msg.id}" data-message-index="${messageGroups.flat().indexOf(msg)}">
+                            <div class="${avatarClasses}">
+                                <div class="avatar avatar-like avatar-40 ${msg.avatarColor === 'gradient' ? 'avatar-gradient' : msg.avatarColor} bubbles-group-avatar user-avatar">
+                                    ${avatarContent}
+                                </div>
+                            </div>
+                            <div class="${bubbleClasses}">
+                                <div class="bubble-content-wrapper">
+                                    <div class="bubble-content">
+                                        ${nameHTML}
+                                        ${repliesHTML}
+                                        <div class="message spoilers-container">
+                                            <span class="translatable-message">${msg.messageText}</span>
+                                            <span class="time">${displayTime}</span>
+                                            <span class="clearfix"></span>
+                                        </div>
+                                        ${msg.messageType === 'incoming' ? '<svg viewBox="0 0 11 20" width="11" height="20" class="bubble-tail"><use href="#message-tail-filled"></use></svg>' : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        ${buttonsHTML}
+                    `;
+
+                    chatContainer.insertAdjacentHTML('beforeend', messageHTML);
+                });
+            });
+            
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            document.querySelectorAll('.spoiler').forEach(spoiler => {
+                spoiler.addEventListener('click', function() {
+                    this.classList.add('revealed');
+                });
+            });
+
+            document.querySelectorAll('.bubbles-group[data-message-id]').forEach(group => {
+                const bubble = group.querySelector('.bubble');
+                
+                group.addEventListener('mousedown', function(e) {
+                    if (e.button !== 0) return;
+                    
+                    const messageIndex = parseInt(this.dataset.messageIndex);
+                    
+                    mouseDownTimeout = setTimeout(() => {
+                        isSelecting = true;
+                        selectionStartIndex = messageIndex;
+                        toggleMessageSelection(this.dataset.messageId, true);
+                        document.body.style.userSelect = 'none';
+                    }, 300);
+                });
+                
+                group.addEventListener('mouseup', function(e) {
+                    if (mouseDownTimeout) {
+                        clearTimeout(mouseDownTimeout);
+                        mouseDownTimeout = null;
+                    }
+                    
+                    if (isSelecting) {
+                        isSelecting = false;
+                        document.body.style.userSelect = '';
+                    }
+                });
+                
+                group.addEventListener('mouseenter', function(e) {
+                    if (isSelecting) {
+                        const messageIndex = parseInt(this.dataset.messageIndex);
+                        selectMessageRange(selectionStartIndex, messageIndex);
+                    }
+                });
+                
+                group.addEventListener('mouseleave', function(e) {
+                    if (mouseDownTimeout) {
+                        clearTimeout(mouseDownTimeout);
+                        mouseDownTimeout = null;
+                    }
+                });
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (mouseDownTimeout) {
+                    clearTimeout(mouseDownTimeout);
+                    mouseDownTimeout = null;
+                }
+                
+                if (isSelecting) {
+                    isSelecting = false;
+                    document.body.style.userSelect = '';
+                }
+            });
+        }
+
+        function toggleMessageSelection(messageId, forceSelect = false) {
+            if (forceSelect || !selectedMessages.has(messageId)) {
+                selectedMessages.add(messageId);
+            } else {
+                selectedMessages.delete(messageId);
+            }
+            updateMessageVisualSelection();
+        }
+
+        function selectMessageRange(startIndex, endIndex) {
+            selectedMessages.clear();
+            
+            const minIndex = Math.min(startIndex, endIndex);
+            const maxIndex = Math.max(startIndex, endIndex);
+            
+            const allGroups = document.querySelectorAll('.bubbles-group[data-message-id]');
+            for (let i = minIndex; i <= maxIndex && i < allGroups.length; i++) {
+                const messageId = allGroups[i].dataset.messageId;
+                selectedMessages.add(messageId);
+            }
+            
+            updateMessageVisualSelection();
+        }
+
+        function updateMessageVisualSelection() {
+            document.querySelectorAll('.bubble').forEach(bubble => {
+                bubble.classList.remove('selected');
+            });
+            
+            selectedMessages.forEach(messageId => {
+                const group = document.querySelector(`[data-message-id="${messageId}"]`);
+                if (group) {
+                    const bubble = group.querySelector('.bubble');
+                    if (bubble) {
+                        bubble.classList.add('selected');
+                    }
+                }
+            });
+        }
+
+        function exportSelectedMessages() {
+            const messagesToExport = selectedMessages.size > 0 ? 
+                messages.filter(msg => selectedMessages.has(msg.id.toString())) : 
+                messages;
+            
+            if (messagesToExport.length === 0) {
+                alert('Нет сообщений для экспорта');
+                return;
+            }
+            
+            exportMessages(messagesToExport);
+        }
+
+        function exportAllMessages() {
+            if (messages.length === 0) {
+                alert('Нет сообщений для экспорта');
+                return;
+            }
+            
+            exportMessages(messages);
+        }
+
+        function exportMessages(messagesToExport) {
+            const exportWidth = parseInt(document.getElementById('exportWidth').value) || 800;
+            const includeDate = document.getElementById('exportWithDate').checked;
+а
+            const tempContainer = document.createElement('div');
+            tempContainer.style.cssText = `
+                position: absolute;
+                top: -10000px;
+                left: -10000px;
+                width: ${exportWidth}px;
+                background: #0e1621;
+                color: #ffffff;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                padding: 20px;
+            `;
+
+            const styles = document.querySelector('style').cloneNode(true);
+            tempContainer.appendChild(styles);
+            
+            const sortedMessages = [...messagesToExport].sort((a, b) => a.timestamp - b.timestamp);
+
+            const messageGroups = [];
+            let currentGroup = [];
+            let currentDate = null;
+            
+            for (let i = 0; i < sortedMessages.length; i++) {
+                const msg = sortedMessages[i];
+                const prevMsg = sortedMessages[i - 1];
+                
+                if (currentGroup.length === 0 || !canGroupMessages(prevMsg, msg) || currentGroup.length >= 10) {
+                    if (currentGroup.length > 0) {
+                        messageGroups.push([...currentGroup]);
+                    }
+                    currentGroup = [msg];
+                } else {
+                    currentGroup.push(msg);
+                }
+            }
+            
+            if (currentGroup.length > 0) {
+                messageGroups.push(currentGroup);
+            }
+
+            let exportHTML = '';
+            let lastDate = null;
+            
+            messageGroups.forEach(group => {
+                group.forEach((msg, index) => {
+                    if (includeDate && lastDate !== msg.messageDate) {
+                        lastDate = msg.messageDate;
+                        exportHTML += `
+                            <div class="bubble service is-date">
+                                <div class="bubble-content">
+                                    <div class="service-msg">
+                                        <span class="i18n">${formatDate(msg.messageDate)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    const isFirst = index === 0;
+                    const isLast = index === group.length - 1;
+                    const isGrouped = group.length > 1;
+
+                    let repliesHTML = '';
+                    msg.replies.forEach(reply => {
+                        const replyColor = reply.color || msg.avatarColor;
+                        repliesHTML += `
+                            <div class="reply reply-${replyColor}">
+                                <div class="reply-title ${replyColor}">${reply.username}</div>
+                                <div class="reply-subtitle">${reply.text}</div>
+                            </div>
+                        `;
+                    });
+
+                    let buttonsHTML = '';
+                    const validButtons = msg.buttons.filter(b => b.text);
+                    if (validButtons.length > 0 && isLast) {
+                        buttonsHTML = '<div class="message-buttons">';
+                        validButtons.forEach(button => {
+                            buttonsHTML += `
+                                <button class="message-button">
+                                    <span>${button.text}</span>
+                                </button>
+                            `;
+                        });
+                        buttonsHTML += '</div>';
+                    }
+
+                    const displayTime = msg.messageTime.endsWith(':00') ? 
+                        msg.messageTime.slice(0, -3) : msg.messageTime;
+
+                    let bubbleClasses = `bubble ${msg.messageType === 'incoming' ? 'is-in' : 'is-out'} can-have-tail`;
+                    let groupClasses = 'bubbles-group';
+                    let avatarClasses = 'bubbles-group-avatar-container';
+                    
+                    if (isGrouped) {
+                        groupClasses += ' grouped';
+                        
+                        if (isFirst && isLast) {
+                            bubbleClasses += ' is-group-first is-group-last';
+                        } else if (isFirst) {
+                            bubbleClasses += ' is-group-first';
+                        } else if (isLast) {
+                            bubbleClasses += ' is-group-last';
+                        } else {
+                            bubbleClasses += ' is-group-middle';
+                        }
+
+                        if (!isLast) {
+                            avatarClasses += ' hidden';
+                        }
+                    } else {
+                        bubbleClasses += ' is-group-first is-group-last';
+                    }
+
+                    let nameHTML = '';
+                    if (msg.messageType === 'incoming' && isFirst) {
+                        nameHTML = `
+                            <div class="colored-name name floating-part next-is-message ${msg.avatarColor}">
+                                <div class="title-flex">
+                                    <span class="peer-title">${msg.username}</span>
+                                    ${msg.userRank ? `<span class="bubble-name-rank">${msg.userRank}</span>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    let avatarContent = '';
+                    if (msg.avatarPhoto) {
+                        avatarContent = `<img src="${msg.avatarPhoto}" class="avatar-photo" alt="${msg.username}">`;
+                    } else {
+                        avatarContent = getFirstLetter(msg.username);
+                    }
+
+                    exportHTML += `
+                        <div class="${groupClasses}">
+                            <div class="${avatarClasses}">
+                                <div class="avatar ${msg.avatarColor}">
+                                    ${avatarContent}
+                                </div>
+                            </div>
+                            <div class="${bubbleClasses}">
+                                <div class="bubble-content-wrapper">
+                                    <div class="bubble-content">
+                                        ${nameHTML}
+                                        ${repliesHTML}
+                                        <div class="message spoilers-container">
+                                            <span class="translatable-message">${msg.messageText}</span>
+                                            <span class="time">${displayTime}</span>
+                                            <span class="clearfix"></span>
+                                        </div>
+                                        ${msg.messageType === 'incoming' ? '<svg viewBox="0 0 11 20" width="11" height="20" class="bubble-tail"><use href="#message-tail-filled"></use></svg>' : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        ${buttonsHTML}
+                    `;
+                });
+            });
+            
+            tempContainer.innerHTML = exportHTML;
+            document.body.appendChild(tempContainer);
+            
+            tempContainer.querySelectorAll('.spoiler').forEach(spoiler => {
+                spoiler.classList.add('revealed');
+            });
+
+            html2canvas(tempContainer, {
+                backgroundColor: '#0e1621',
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                logging: false
+            }).then(canvas => {
+                const dataUrl = canvas.toDataURL('image/png');
+                const previewImg = document.getElementById('previewImage');
+                previewImg.src = dataUrl;
+                document.getElementById('exportPreview').style.display = 'block';
+                document.getElementById('downloadBtn').onclick = function() {
+                    const link = document.createElement('a');
+                    link.download = `telegram-export-${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.png`;
+                    link.href = dataUrl;
+                    link.click();
+                };
+                
+                document.body.removeChild(tempContainer);
+            }).catch(error => {
+                console.error('Ошибка экспорта:', error);
+                alert('Ошибка при создании скриншота');
+                document.body.removeChild(tempContainer);
+            });
+        }
+
+        function closePreview() {
+            document.getElementById('exportPreview').style.display = 'none';
+        }
+
+        function clearChat() {
+            messages = [];
+            document.getElementById('chatContainer').innerHTML = '';
+        }
+    </script>
 </body>
 </html>
